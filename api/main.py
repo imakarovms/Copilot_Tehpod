@@ -1,0 +1,1 @@
+# FastAPI, эндпоинт POST /diagnose

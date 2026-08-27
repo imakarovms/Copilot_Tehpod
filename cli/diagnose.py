@@ -1,0 +1,1 @@
+# простой CLI: python -m cli.diagnose "текст проблемы"
