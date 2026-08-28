@@ -28,3 +28,6 @@ api:
 clean:
 	rm -rf venv/ chroma_db/ models/ __pycache__/ .pytest_cache/ eval/results/
 	find . -type d -name "__pycache__" -exec rm -r {} +
+    
+api:
+	. venv/bin/activate && uvicorn api.main:app --reload --host 0.0.0.0 --port 8000

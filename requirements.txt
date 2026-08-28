@@ -124,3 +124,5 @@ pytest
 rank-bm25
 pymorphy3
 llama-cpp-python
+fastapi
+uvicorn
