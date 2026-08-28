@@ -12,9 +12,7 @@ print(f"Скачиваю {filename} (~4.7 ГБ) в {model_dir.resolve()} ...")
 print("Это может занять несколько минут в зависимости от скорости интернета.")
 
 file_path = hf_hub_download(
-    repo_id=repo_id,
-    filename=filename,
-    local_dir=str(model_dir)
+    repo_id=repo_id, filename=filename, local_dir=str(model_dir)
 )
 
 print(f"Готово! Модель сохранена: {file_path}")

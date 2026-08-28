@@ -10,10 +10,11 @@ from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+
 class Generator:
     def __init__(self):
         model_path = Path("models/llm/Qwen2.5-7B-Instruct-Q4_K_M.gguf")
-        
+
         if not model_path.exists():
             raise FileNotFoundError(
                 f"Модель LLM не найдена по пути {model_path}. "
@@ -21,15 +22,17 @@ class Generator:
             )
 
         logger.info("Загрузка локальной LLM: %s ...", model_path.name)
-        logger.info("Инициализация может занять 10-20 секунд (загрузка весов в VRAM)...")
-        
+        logger.info(
+            "Инициализация может занять 10-20 секунд (загрузка весов в VRAM)..."
+        )
+
         # n_gpu_layers=-1 означает, что вся модель загружается в видеокарту (RTX 4060)
         self.llm = Llama(
             model_path=str(model_path),
-            n_gpu_layers=-1,       # Полная загрузка в GPU
-            n_ctx=4096,            # Размер контекста
-            verbose=False,         # Отключаем спам в консоль от llama.cpp
-            n_threads=4,           # Потоки CPU для препроцессинга
+            n_gpu_layers=-1,  # Полная загрузка в GPU
+            n_ctx=4096,  # Размер контекста
+            verbose=False,  # Отключаем спам в консоль от llama.cpp
+            n_threads=4,  # Потоки CPU для препроцессинга
         )
         logger.info("Локальная LLM успешно загружена в VRAM.")
 
@@ -41,7 +44,7 @@ class Generator:
             return {
                 "answer": "INSUFFICIENT DATA: В базе знаний не найдено релевантных тикетов для решения этой проблемы.",
                 "citations": [],
-                "confidence": "low"
+                "confidence": "low",
             }
 
         # Формируем контекст из топ-3 тикетов
@@ -52,8 +55,10 @@ class Generator:
             title = ticket.get("title", "Без заголовка")
             desc = ticket.get("description", "")
             resolution = ticket.get("resolution", "Решение не указано")
-            
-            context_parts.append(f"[{tid}] {title}\nОписание: {desc}\nРешение: {resolution}")
+
+            context_parts.append(
+                f"[{tid}] {title}\nОписание: {desc}\nРешение: {resolution}"
+            )
             citations.append(tid)
 
         context_text = "\n\n".join(context_parts)
@@ -77,17 +82,17 @@ class Generator:
         # Формируем сообщения в формате ChatML, который понимает Qwen
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": user_prompt},
         ]
 
         logger.info("Генерация ответа для запроса: '%s...'", query[:40])
-        
+
         # Генерация
         output = self.llm.create_chat_completion(
             messages=messages,
-            temperature=0.1,       # Низкая температура для фактологичности (RAG)
-            max_tokens=512,        # Ограничиваем длину ответа
-            stop=["<|im_end|>"]    # Стоп-токен для Qwen
+            temperature=0.1,  # Низкая температура для фактологичности (RAG)
+            max_tokens=512,  # Ограничиваем длину ответа
+            stop=["<|im_end|>"],  # Стоп-токен для Qwen
         )
 
         answer_text = output["choices"][0]["message"]["content"].strip()
@@ -95,5 +100,5 @@ class Generator:
         return {
             "answer": answer_text,
             "citations": citations,
-            "confidence": "high" if "INSUFFICIENT" not in answer_text else "low"
+            "confidence": "high" if "INSUFFICIENT" not in answer_text else "low",
         }

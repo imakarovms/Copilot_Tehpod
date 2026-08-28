@@ -1,4 +1,5 @@
 """Юнит-тесты embedder. Запуск: pytest tests/test_embedder.py -v"""
+
 import numpy as np
 import pytest
 
@@ -57,23 +58,27 @@ class TestSimilarity:
     def test_semantic_close_beats_far(self):
         """Похожий текст должен быть ближе непохожего — ядро всей идеи."""
         query = embed_query("VPN не подключается, таймаут")
-        base = embed_texts([
-            "Не могу установить VPN-соединение, ошибка",   # похожий
-            "Принтер печатает пустые листы",               # другой домен
-        ])
+        base = embed_texts(
+            [
+                "Не могу установить VPN-соединение, ошибка",  # похожий
+                "Принтер печатает пустые листы",  # другой домен
+            ]
+        )
         sim = base @ query
         assert sim[0] > sim[1]
 
     def test_top_k_order(self):
         query = embed_query("Проблема с оплатой, двойное списание")
-        base = embed_texts([
-            "Принтер не печатает",                # 0: нерелевантный
-            "Двойное списание за подписку",       # 1: релевантный
-            "Wi-Fi отваливается",                 # 2: нерелевантный
-        ])
+        base = embed_texts(
+            [
+                "Принтер не печатает",  # 0: нерелевантный
+                "Двойное списание за подписку",  # 1: релевантный
+                "Wi-Fi отваливается",  # 2: нерелевантный
+            ]
+        )
         top = top_k_by_similarity(query, base, k=2)
-        assert top[0][0] == 1           # лучший — релевантный индекс
-        assert top[0][1] >= top[1][1]   # скоры по убыванию
+        assert top[0][0] == 1  # лучший — релевантный индекс
+        assert top[0][1] >= top[1][1]  # скоры по убыванию
 
     def test_determinism(self):
         """Один текст → одинаковый вектор (детерминизм inference)."""

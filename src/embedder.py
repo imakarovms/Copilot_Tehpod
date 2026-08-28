@@ -6,6 +6,7 @@ src/embedder.py — эмбеддинги тикетов и запросов.
 - по какому шаблону тикет превращается в текст (ticket_to_text)
 - нормализация (normalize_embeddings=True → поиск = dot product)
 """
+
 import json
 import logging
 from pathlib import Path
@@ -74,8 +75,8 @@ def embed_texts(texts: list[str], batch_size: int | None = None) -> np.ndarray:
     embeddings = model.encode(
         texts,
         batch_size=batch_size or settings.embedding_batch_size,
-        normalize_embeddings=True,   # ключевое: косинус == dot product
-        convert_to_numpy=True,       # явно возвращаем numpy, не torch-тензоры
+        normalize_embeddings=True,  # ключевое: косинус == dot product
+        convert_to_numpy=True,  # явно возвращаем numpy, не torch-тензоры
         show_progress_bar=len(texts) > 50,  # прогрессбар только на больших батчах
     )
 

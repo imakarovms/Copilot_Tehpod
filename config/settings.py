@@ -2,6 +2,7 @@
 from pydantic_settings import BaseSettings
 from pathlib import Path
 
+
 class Settings(BaseSettings):
     # --- Эмбеддинги ---
     embedding_model: str = "models/minilm"
@@ -23,6 +24,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         extra = "ignore"
+
 
 # ЭТА СТРОКА ОБЯЗАТЕЛЬНА: создает экземпляр, который читает .env
 settings = Settings()
