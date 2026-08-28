@@ -5,7 +5,7 @@ src/generator.py — генерация ответа с помощью лока�
 import logging
 from pathlib import Path
 from llama_cpp import Llama
-
+from src.security import SecurityValidator
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,17 @@ class Generator:
         """
         Генерирует ответ на основе запроса и найденных тикетов.
         """
+        # 1. Валидация ввода
+        safe_query = SecurityValidator.validate_query(query)
+
+        if not retrieved_tickets:
+            return {
+                "answer": (
+                    "INSUFFICIENT DATA: В базе знаний не найдено релевантных тикетов."
+                ),
+                "citations": [],
+                "confidence": "low",
+            }
         if not retrieved_tickets:
             return {
                 "answer": "INSUFFICIENT DATA: В базе знаний не найдено релевантных тикетов для решения этой проблемы.",
@@ -96,9 +107,21 @@ class Generator:
         )
 
         answer_text = output["choices"][0]["message"]["content"].strip()
+        citations = [t.get("id") for t in retrieved_tickets[:3]]
+
+        # 3. Валидация вывода
+        validation = SecurityValidator.validate_output(answer_text, citations)
+        if not validation["is_valid"]:
+            answer_text = (
+                f"ОШИБКА ВАЛИДАЦИИ: {validation['reason']}. "
+                "Пожалуйста, переформулируйте запрос."
+            )
+            citations = []
 
         return {
             "answer": answer_text,
             "citations": citations,
-            "confidence": "high" if "INSUFFICIENT" not in answer_text else "low",
+            "confidence": (
+                "high" if "INSUFFICIENT" not in answer_text.upper() else "low"
+            ),
         }
