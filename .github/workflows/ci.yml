@@ -1,0 +1,24 @@
+name: Code Integrity Check
+
+on: [push, pull_request]
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal dependencies
+        run: pip install pytest pydantic fastapi
+
+      - name: Check Python syntax and imports (без запуска)
+        run: python -m compileall -q .
+
+      - name: Run ONLY safe unit tests (без ML-моделей)
+        run: pytest tests/test_security.py -v
