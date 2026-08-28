@@ -14,10 +14,25 @@ from src.embedder import embed_query
 logger = logging.getLogger(__name__)
 
 
-def tokenize(text: str) -> list[str]:
-    """Простая токенизация: нижний регистр и извлечение слов."""
-    return re.findall(r'\w+', text.lower())
+import re
+import pymorphy3
 
+# Инициализируем анализатор один раз при импорте модуля
+morph = pymorphy3.MorphAnalyzer()
+
+def tokenize(text: str) -> list[str]:
+    """
+    Токенизация с лемматизацией для русского языка.
+    Превращает "с графиками" в ["с", "график"].
+    """
+    # Находим все слова (игнорируем пунктуацию)
+    words = re.findall(r'\w+', text.lower())
+    
+    # Приводим каждое слово к начальной форме (нормальной форме)
+    # morph.parse(word)[0] берет наиболее вероятный вариант разбора
+    lemmas = [morph.parse(word)[0].normal_form for word in words]
+    
+    return lemmas
 
 class Retriever:
     def __init__(self):
