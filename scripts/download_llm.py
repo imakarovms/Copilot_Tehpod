@@ -8,8 +8,7 @@ model_dir.mkdir(parents=True, exist_ok=True)
 repo_id = "bartowski/Qwen2.5-7B-Instruct-GGUF"
 filename = "Qwen2.5-7B-Instruct-Q4_K_M.gguf"
 
-print(f"Скачиваю {filename} (~4.7 ГБ) в {model_dir.resolve()} ...")
-print("Это может занять несколько минут в зависимости от скорости интернета.")
+print(f"Скачиваю {filename}  в {model_dir.resolve()} ...")
 
 file_path = hf_hub_download(
     repo_id=repo_id, filename=filename, local_dir=str(model_dir)

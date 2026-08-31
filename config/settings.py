@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     embedding_max_seq_length: int = 128
 
     # --- Реранкинг ---
-    reranker_model: str = "models/reranker"  # <-- Изменено на локальный путь
+    reranker_model: str = "models/reranker"  
 
     # --- Пути ---
     data_dir: str = "data"
@@ -26,5 +26,4 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 
-# ЭТА СТРОКА ОБЯЗАТЕЛЬНА: создает экземпляр, который читает .env
 settings = Settings()
