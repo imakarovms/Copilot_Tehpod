@@ -43,11 +43,21 @@ class IncidentPipeline:
         # 4. Генерация
         result = self.generator.generate(sec["redacted_text"], top_tickets)
 
+        # Определяем 4 уровня уверенности на основе качества поиска и ответа
+        if not top_tickets or top_tickets[0].get("score", 0) < 0.3:
+            confidence_level = "недостаточно похожих случаев"
+        elif result["answer"].upper().startswith("INSUFFICIENT"):
+            confidence_level = "низкая"
+        elif len(result["citations"]) >= 2 and result["citations"][0] in result["answer"]:
+            confidence_level = "высокая"
+        else:
+            confidence_level = "средняя"
+
         return {
             "query": query,
             "answer": result["answer"],
             "citations": result["citations"],
-            "confidence": result["confidence"],
+            "confidence": confidence_level,
             "risk_score": result.get("risk_score", 0.0),
             "retrieved_tickets": top_tickets,
             "blocked": False,
