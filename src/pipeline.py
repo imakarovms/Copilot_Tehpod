@@ -6,6 +6,7 @@ from src.retriever import Retriever
 from src.reranker import Reranker
 from src.generator import Generator
 from security import SecurityValidator
+from cache.cache import ResponseCache
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,17 @@ class IncidentPipeline:
         self.reranker = Reranker()
         self.generator = Generator()
         self.security = SecurityValidator()
+        self.cache = ResponseCache()
+
         logger.info("IncidentPipeline готов.")
 
     def run(self, query: str, top_k: int = 3) -> dict:
+        #  Проверяем кеш
+        cached = self.cache.get(query, top_k)
+        if cached is not None:
+            cached["from_cache"] = True
+            return cached
+        
         # 1. Проверка запроса
         sec = self.security.validate_query(query)
         if not sec["safe"]:
@@ -30,6 +39,7 @@ class IncidentPipeline:
                 "confidence": "low",
                 "risk_score": sec["risk_score"],
                 "blocked": True,
+                "from_cache": False,
             }
 
         # 2. Поиск
@@ -53,7 +63,7 @@ class IncidentPipeline:
         else:
             confidence_level = "средняя"
 
-        return {
+        final_result = {
             "query": query,
             "answer": result["answer"],
             "citations": result["citations"],
@@ -61,4 +71,11 @@ class IncidentPipeline:
             "risk_score": result.get("risk_score", 0.0),
             "retrieved_tickets": top_tickets,
             "blocked": False,
+            "from_cache": False,
         }
+
+        # 7. Сохраняем в кеш (только успешные ответы)
+        if not result["answer"].upper().startswith("INSUFFICIENT"):
+            self.cache.set(query, top_k, final_result)
+
+        return final_result

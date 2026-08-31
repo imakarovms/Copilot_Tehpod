@@ -50,3 +50,7 @@ eval: ## Оценить качество поиска (Hit Rate)
 
 eval-gen: ## Оценить качество генерации ответов (LLM-as-a-Judge)
 	. venv/bin/activate && python eval/run_eval_generation.py
+	
+clean-cache: ## Очистить кеш ответов
+	rm -rf cache/
+	@echo "✓ Кеш очищен"

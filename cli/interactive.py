@@ -56,7 +56,9 @@ def main():
                 print(f"⛔ Запрос заблокирован: {result.get('answer')}")
                 print(f'Время выполнения {end - start:.3f}')
             else:
-                print(f"\n💡 Ответ:\n{result.get('answer')}")
+                cache_status = " [КЕШ]" if result.get("from_cache") else ""
+                print(f"\n💡 Ответ{cache_status}:")
+                print(result.get("answer"))
                 print(f"📎 Источники: {', '.join(result.get('citations', []))}")
                 print(f"📊 Уверенность: {result.get('confidence', 'unknown').upper()}")
                 print(f'Время выполнения {end - start:.3f}')
