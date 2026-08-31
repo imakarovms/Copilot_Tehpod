@@ -5,6 +5,7 @@ cli/interactive.py — интерактивный режим работы с Cop
 import logging
 import sys
 from pathlib import Path
+import time
 
 # Добавляем корень проекта в путь
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -42,18 +43,23 @@ def main():
                 break
 
             print("🤖 Думаю...", end="", flush=True)
+            start = time.perf_counter()
             
             # Запускаем пайплайн
             result = pipeline.run(query, top_k=3)
             
             print("\r" + " " * 20 + "\r", end="") # Очистка строки "Думаю..."
 
+            end = time.perf_counter()
+
             if result.get("blocked"):
                 print(f"⛔ Запрос заблокирован: {result.get('answer')}")
+                print(f'Время выполнения {end - start:.3f}')
             else:
                 print(f"\n💡 Ответ:\n{result.get('answer')}")
                 print(f"📎 Источники: {', '.join(result.get('citations', []))}")
                 print(f"📊 Уверенность: {result.get('confidence', 'unknown').upper()}")
+                print(f'Время выполнения {end - start:.3f}')
 
         except KeyboardInterrupt:
             print("\n\nЗавершение работы...")
