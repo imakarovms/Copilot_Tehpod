@@ -1,10 +1,29 @@
 """
-eval/run_eval_generation.py — Оценка качества генерации ответов (LLM-as-a-Judge).
+eval/run_eval_generation.py — Оценка качества генерации ответов (LLM-as-a-Judge через Ollama).
 """
 import json
 import logging
 import sys
+import requests
 from pathlib import Path
+
+import os
+import warnings
+
+# 1. Отключаем предупреждения PyTorch о "старом драйвере" (это не мешает работе)
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
+
+# 2. Отключаем прогресс-бары и логи Hugging Face
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+
+import logging
+# Глушим логи конкретных шумных библиотек
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("security.pipeline_security").setLevel(logging.WARNING) # Чтобы не спамил про отсутствующие ссылки
 
 # Добавляем корень проекта в путь
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -16,18 +35,20 @@ from src.pipeline import IncidentPipeline
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-JUDGE_PROMPT = """Ты строгий, но справедливый оценщик качества ответов технической поддержки.
+OLLAMA_URL = "http://localhost:11434/api/chat"
+MODEL = "qwen2.5:7b"
+
+JUDGE_PROMPT = """Ты справедливый оценщик качества ответов технической поддержки.
 Твоя задача: определить, содержит ли сгенерированный ответ ту же основную причину и решение, что и эталонный диагноз.
 
 Эталонный диагноз: "{ground_truth}"
 Сгенерированный ответ: "{generated_answer}"
 
-Вопрос: Совпадает ли суть сгенерированного ответа с эталонным диагнозом? 
-Допускаются перефразирования и другой стиль изложения, если ключевая причина и рекомендуемое действие сохранены. 
-Если модель ответила "INSUFFICIENT DATA", а в эталоне есть конкретное решение, это считается НЕСОВПАДЕНИЕМ.
+КРИТЕРИИ ОЦЕНКИ:
+- ДА: если ключевая причина и рекомендуемое действие сохранены (допускаются перефразирования, другой стиль изложения, дополнительные детали из тикетов).
+- НЕТ: если причина или решение фундаментально отличаются, или если ответ "INSUFFICIENT DATA" при наличии конкретного решения в эталоне.
 
-Ответь ТОЛЬКО одним словом: ДА или НЕТ.
-"""
+Ответь ТОЛЬКО одним словом: ДА или НЕТ."""
 
 
 def evaluate_generation():
@@ -47,7 +68,7 @@ def evaluate_generation():
         return
 
     print(f"Загрузка пайплайна для оценки генерации ({len(eval_data)} запросов)...")
-    print("Это может занять несколько минут...\n")
+    print("Это может занять несколько минут (первый запрос загружает модель в GPU)...\n")
 
     pipeline = IncidentPipeline()
     print("Пайплайн готов. Начинаем оценку...\n")
@@ -69,27 +90,34 @@ def evaluate_generation():
         if "INSUFFICIENT" in generated_answer.upper():
             judge_verdict = "НЕТ"
         else:
-            # 2. Запускаем LLM-as-a-Judge
+            # 2. Запускаем LLM-as-a-Judge через Ollama API
             judge_prompt_formatted = JUDGE_PROMPT.format(
                 ground_truth=ground_truth,
                 generated_answer=generated_answer
             )
 
-            # Используем тот же LLM для оценки
             messages = [
                 {"role": "system", "content": "Ты строгий оценщик. Отвечай только ДА или НЕТ."},
                 {"role": "user", "content": judge_prompt_formatted}
             ]
 
-            judge_output = pipeline.generator.llm.create_chat_completion(
-                messages=messages,
-                temperature=0.0,
-                max_tokens=10,
-                stop=["\n"]
-            )
-
-            verdict_text = judge_output["choices"][0]["message"]["content"].strip().upper()
-            judge_verdict = "ДА" if "ДА" in verdict_text else "НЕТ"
+            try:
+                resp = requests.post(
+                    OLLAMA_URL,
+                    json={
+                        "model": MODEL,
+                        "messages": messages,
+                        "options": {"temperature": 0.0, "num_predict": 10},
+                        "stream": False
+                    },
+                    timeout=30
+                )
+                resp.raise_for_status()
+                verdict_text = resp.json()["message"]["content"].strip().upper()
+                judge_verdict = "ДА" if "ДА" in verdict_text else "НЕТ"
+            except Exception as e:
+                print(f"  -> Ошибка вызова судьи: {e}")
+                judge_verdict = "НЕТ"
 
         if judge_verdict == "ДА":
             yes_count += 1
