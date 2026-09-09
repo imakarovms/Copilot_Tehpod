@@ -4,7 +4,7 @@ src/generator.py — генерация через локальный Ollama (GP
 import logging
 import requests
 from security.pipeline_security import SecurityValidator
-
+from observability.tracer import observe
 logger = logging.getLogger(__name__)
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
@@ -16,6 +16,7 @@ class Generator:
         self.validator = SecurityValidator()
         logger.info("Generator инициализирован (Ollama: %s)", OLLAMA_URL)
 
+    @observe
     def generate(self, query: str, retrieved_tickets: list[dict]) -> dict:
         # 1. Валидация ввода
         validation = self.validator.validate_query(query)
@@ -25,6 +26,9 @@ class Generator:
                 "citations": [],
                 "confidence": "low",
                 "risk_score": validation["risk_score"],
+                "_obs_tokens_in": 0,
+                "_obs_tokens_out": 0,
+                "_obs_model": MODEL,
             }
 
         if not retrieved_tickets:
@@ -33,6 +37,9 @@ class Generator:
                 "citations": [],
                 "confidence": "low",
                 "risk_score": 0.0,
+                "_obs_tokens_in": 0,
+                "_obs_tokens_out": 0,
+                "_obs_model": MODEL,
             }
 
         # 2. Формируем контекст
@@ -90,12 +97,21 @@ class Generator:
             response.raise_for_status()
             result = response.json()
             answer_text = result["message"]["content"].strip()
+            
+            # Извлекаем точные метрики из ответа Ollama для observability
+            obs_tokens_in = result.get("prompt_eval_count", 0)
+            obs_tokens_out = result.get("eval_count", 0)
+            obs_model = result.get("model", MODEL)
+            
         except requests.exceptions.ConnectionError:
             return {
                 "answer": "Ошибка: LLM-сервис (Ollama) недоступен. Запустите 'ollama serve'.",
                 "citations": [],
                 "confidence": "low",
                 "risk_score": 0.0,
+                "_obs_tokens_in": 0,
+                "_obs_tokens_out": 0,
+                "_obs_model": MODEL,
             }
         except Exception as e:
             return {
@@ -103,6 +119,9 @@ class Generator:
                 "citations": [],
                 "confidence": "low",
                 "risk_score": 0.0,
+                "_obs_tokens_in": 0,
+                "_obs_tokens_out": 0,
+                "_obs_model": MODEL,
             }
 
         # 4. Валидация вывода
@@ -116,4 +135,7 @@ class Generator:
             "citations": citations,
             "confidence": "high" if "INSUFFICIENT" not in answer_text.upper() else "low",
             "risk_score": validation["risk_score"],
+            "_obs_tokens_in": obs_tokens_in,
+            "_obs_tokens_out": obs_tokens_out,
+            "_obs_model": obs_model,
         }
