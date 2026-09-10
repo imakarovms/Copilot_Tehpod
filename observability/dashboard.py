@@ -145,8 +145,8 @@ st.markdown("---")
 st.subheader("️ Латентность (p50/p95)")
 
 # Группируем по часам
-df_hourly = df.set_index("datetime").resample("1H").agg({
-    "latency_ms": ["count", "mean", lambda x: calculate_p50(x), lambda x: calculate_p95(x)]
+df_hourly = df.set_index("datetime").resample("1h").agg({
+        "latency_ms": ["count", "mean", lambda x: calculate_p50(x), lambda x: calculate_p95(x)]
 })
 df_hourly.columns = ["count", "mean", "p50", "p95"]
 df_hourly = df_hourly.reset_index()
@@ -192,7 +192,7 @@ st.plotly_chart(fig_volume, use_container_width=True)
 # ─────────────────────────────────────────────────────────────
 st.subheader("❌ Error Rate")
 
-df_errors = df.set_index("datetime").resample("1H").agg({
+df_errors = df.set_index("datetime").resample("1h").agg({
     "success": ["count", lambda x: (x == 0).sum()]
 })
 df_errors.columns = ["total", "errors"]
@@ -235,7 +235,7 @@ df_evaluated = df[df["is_evaluated"] == 1]
 if not df_evaluated.empty:
     st.subheader("⭐ Тренд качества")
     
-    df_quality = df_evaluated.set_index("datetime").resample("1H").agg({
+    df_quality = df_evaluated.set_index("datetime").resample("1h").agg({
         "quality_score": ["count", "mean"]
     })
     df_quality.columns = ["count", "avg_score"]

@@ -16,7 +16,6 @@ class Generator:
         self.validator = SecurityValidator()
         logger.info("Generator инициализирован (Ollama: %s)", OLLAMA_URL)
 
-    @observe
     def generate(self, query: str, retrieved_tickets: list[dict]) -> dict:
         # 1. Валидация ввода
         validation = self.validator.validate_query(query)

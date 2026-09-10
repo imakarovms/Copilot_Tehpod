@@ -87,6 +87,24 @@ def save_call(model_name, latency_ms, tokens_in, tokens_out, success=1, error_ty
     conn.close()
     return call_id
 
+
+def save_call_details(call_id: str, input_text: str, output_text: str):
+    """Сохраняет тексты промпта и ответа в таблицу call_details."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT INTO call_details (call_id, input_text, output_text)
+        VALUES (?, ?, ?)
+        ON CONFLICT(call_id) DO UPDATE SET 
+            input_text = excluded.input_text,
+            output_text = excluded.output_text
+    ''', (call_id, input_text, output_text))
+    
+    conn.commit()
+    conn.close()
+
+
 # Этот блок выполняется, только если запустить файл напрямую (python db.py)
 if __name__ == "__main__":
     init_db()

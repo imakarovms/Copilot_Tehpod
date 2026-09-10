@@ -7,6 +7,7 @@ from src.reranker import Reranker
 from src.generator import Generator
 from security import SecurityValidator
 from cache.cache import ResponseCache
+from observability.tracer import observe
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class IncidentPipeline:
 
         logger.info("IncidentPipeline готов.")
 
+    @observe
     def run(self, query: str, top_k: int = 3) -> dict:
         #  Проверяем кеш
         cached = self.cache.get(query, top_k)
