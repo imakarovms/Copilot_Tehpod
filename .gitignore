@@ -36,8 +36,18 @@ models/
 data/raw/
 eval/results/
 *.log
+*.db
+*.sqlite
+*.sqlite3
 
 # Тесты и покрытие
 .pytest_cache/
 .coverage
 htmlcov/
+
+models/
+*.gguf
+*.bin
+
+.DS_Store
+Thumbs.db

@@ -288,3 +288,31 @@ if show_details:
                 st.text_area("Рассуждение судьи", details["judge_reasoning"], height=150, disabled=True)
         else:
             st.warning("Детали для этого вызова не найдены.")
+
+# ─────────────────────────────────────────────────────────────
+# Алерты
+# ─────────────────────────────────────────────────────────────
+st.sidebar.subheader("Алерты (Email)")
+
+if st.sidebar.button("Проверить алерты сейчас"):
+    with st.spinner("Проверка пороговых значений..."):
+        try:
+            from observability.alerts import run_all_alerts
+            triggered = run_all_alerts()
+            if triggered:
+                st.sidebar.warning(f"Алерты сработали: {', '.join(triggered)}")
+            else:
+                st.sidebar.success("Все метрики в норме")
+        except Exception as e:
+            st.sidebar.error(f"Ошибка: {e}")
+
+if st.sidebar.button("Отправить тестовый Email"):
+    try:
+        from observability.alerts import send_email_alert
+        success = send_email_alert("TEST FROM DASHBOARD", "Дашборд работает и может отправлять письма.")
+        if success:
+            st.sidebar.success("Тестовое письмо отправлено")
+        else:
+            st.sidebar.error("Не удалось отправить. Проверьте .env")
+    except Exception as e:
+        st.sidebar.error(f"Ошибка: {e}")

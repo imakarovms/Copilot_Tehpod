@@ -8,6 +8,7 @@ from src.generator import Generator
 from security import SecurityValidator
 from cache.cache import ResponseCache
 from observability.tracer import observe
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,11 @@ class IncidentPipeline:
 
     @observe
     def run(self, query: str, top_k: int = 3) -> dict:
+        # --- НАЧАЛО CHAOS-ТЕСТА ---
+        if random.random() < 0.5:  # 50% запросов будут падать с ошибкой
+            raise RuntimeError("CHAOS TEST: Искусственный сбой пайплайна")
+        # --- КОНЕЦ CHAOS-ТЕСТА ---
+
         #  Проверяем кеш
         cached = self.cache.get(query, top_k)
         if cached is not None:
